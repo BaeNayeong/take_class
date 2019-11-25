@@ -83,7 +83,7 @@ class University{
 			System.out.println("수업번호\t수업명\t\t학점\t교수이름");
 			
 			while(rs.next()) {
-				System.out.println(rs.getInt(1)+"\t"+rs.getString(2)+"\t"+rs.getString(3)+"\t"+rs.getString(4));
+				System.out.println(rs.getInt(1)+"\t"+rs.getString(2)+"\t"+rs.getInt(3)+"\t"+rs.getString(4));
 			}
 
 			
@@ -94,18 +94,12 @@ class University{
 	}
 	
 	// 학생이 수업을 신청할 수 있도록 하는 메소드 
-	public void registerClass(int className) {
+	public void registerClass(int classNumber) {
 		try {
-			
 			pstmt=con.prepareStatement("INSERT INTO TAKE_CLASS VALUES(?, ?)");
-			/* 
-			 * pstmt=con.prepareStatement("INSERT INTO TAKE_CLASS VALUES(?, (SELECT Cnum FROM CLASS WHERE Cname=?)");
-			 * 라고 했을 때 "" 안의 sql문을 mySQL에 입력했을 때에는 제대로 수행되었지만
-			 * JDBC에 입력하니 Duplicate entry '1-3' for key 'PRIMARY' 라는 오류가 났다.
-			 * primary key가 중복되었을 때 나는 오류라는데 위의 코드는 제대로 적용됨
-			 */
+			
 			pstmt.setInt(1, getNumber());
-			pstmt.setInt(2, className);
+			pstmt.setInt(2, classNumber);
 			pstmt.executeUpdate();
 			
 		}catch(SQLException e) {
@@ -120,10 +114,33 @@ class University{
 	// 학생이 수업을 취소할 수 있도록 하는 메소드
 	public void cancelClass(String className) {
 		try {
-			pstmt=con.prepareStatement("DELETE FROM TAKE_CLASS WHERE Snum=? AND Cnum=(SELECT Cnum FROM CLASS WHERE Cname=?)");
+			//(SELECT Cnum FROM CLASS WHERE Cname=?)
+			
+			pstmt=con.prepareStatement("DELETE FROM TAKE_CLASS WHERE Snum=? AND Cnum=?");
 			pstmt.setInt(1, number);
 			pstmt.setString(2, className);
 			pstmt.executeUpdate();
+			
+		}catch(Exception e) {
+			e.printStackTrace();	
+		}
+	}
+	
+	// 검색한 교수가 맡은 수업을 출력하는 메소드
+	public void professorClass(String professor) {
+		try {
+			
+			pstmt=con.prepareStatement("SELECT P.Pname C.Cname FROM PROFESSOR P, CLASS C WHERE P.Pno=C.Pnum AND P.Pname=?");
+			pstmt.setString(1, professor);
+			rs = pstmt.executeQuery();
+			
+			System.out.println("교수이름\t수업명");
+			
+			while(rs.next()) {
+				System.out.println(rs.getString(1)+"\t"+rs.getString(2));
+			}
+			
+			pstmt=null;
 			
 		}catch(Exception e) {
 			e.printStackTrace();	
@@ -136,6 +153,7 @@ class University{
 		System.out.println("2. 내 수강 리스트 출력하기");
 		System.out.println("3. 수강하기");
 		System.out.println("4. 수강 취소하기");
+		System.out.println("5. 교수 담당 과목 확인");
 		System.out.println("0. 종료");
 		System.out.println("==========================================");
 	}
@@ -211,12 +229,20 @@ public class Main {
 				String subject1=scan.nextLine();
 				univ.cancelClass(subject1);
 				break;
+			
+			// 교수 이름을 받아서 해당 교수가 강의하는 과목을 보여준다 
+			case 5:
+				System.out.println("교수 담당 과목 검색"); scan.nextLine();
+				String profName=scan.nextLine();
+				System.out.println(profName);
+				univ.professorClass(profName);
+				break;
 			}
 			
 		}while(choice!=0);
 		
-		
 		univ.closeDB();
+		scan.close();
 	}//main문 괄호 닫음
 	
 }// Test 클래스 괄호 닫음
