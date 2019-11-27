@@ -125,7 +125,7 @@ class Student extends Person{
 		
 		System.out.println("<<로그인 성공!>>");		
 		
-		// 로그인에 성공했으므로 학번/교수번호와 이메일 변수에 저장해준다
+		// 로그인에 성공했으므로 학번과 이메일 변수에 저장해준다
 		setNumber(inputNum);
 		setMail(inputMail);
 
@@ -227,17 +227,14 @@ class Student extends Person{
 	}
 	
 	// 검색한 교수가 맡은 수업을 출력하는 메소드
-	/*
-	 * 에러났음
-	 */
-	public void professorClass() {
+	public void classPerProfessor() {
 		
-		System.out.println("교수 담당 과목 검색"); scan.nextLine();
+		System.out.println("검색하고자 하는 교수 이름을 입력하세요 : "); scan.nextLine();
 		String professor=scan.nextLine();
 		
 		try {
 			
-			pstmt=con.prepareStatement("SELECT P.Pname C.Cname FROM PROFESSOR AS P, CLASS AS C WHERE P.Pno=C.Pnum AND P.Pname=?");
+			pstmt=con.prepareStatement("select P.Pname, C.Cname from PROFESSOR P, CLASS C where P.Pno=C.Pnum and P.Pname=?");
 			pstmt.setString(1, professor);
 			rs = pstmt.executeQuery();
 			
@@ -262,10 +259,183 @@ class Student extends Person{
  */
 class Professor extends Person{
 	
+	//DB Connection
 	public Professor() {
 		super();
 	}
-}
+	
+	// 교수 로그인 
+	public boolean loginProfessor() {
+		
+		System.out.println("교수번호 : ");
+		int inputNum = scan.nextInt();
+		System.out.println("이메일 : ");
+		scan.nextLine();
+		String inputMail = scan.nextLine();
+		
+		try {
+			pstmt=con.prepareStatement("SELECT * FROM PROFESSOR WHERE Pno=? and mail=?");
+			pstmt.setInt(1, inputNum);
+			pstmt.setString(2, inputMail);
+						
+		}catch(Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		System.out.println("<<로그인 성공!>>");		
+		
+		// 로그인에 성공했으므로 교수번호와 이메일 변수에 저장해준다
+		setNumber(inputNum);
+		setMail(inputMail);
+
+		return true;
+	}
+	
+	// 교수로 로그인했을 때 나타날 메뉴 화면
+	public void showMain() {
+		System.out.println("==========================================");
+		System.out.println("1. 수업 목록 보기");
+		System.out.println("2. 내 수업 리스트 출력하기");
+		System.out.println("3. 수업 개설하기");
+		System.out.println("4. 출석부 보기");
+		System.out.println("0. 종료");
+		System.out.println("==========================================");
+	}
+	
+	// 전체 수업 목록 확인 
+	public void printClassList() {
+		
+		try {
+			ResultSet rs=stmt.executeQuery("SELECT * FROM CLASS");
+			System.out.println("<전체 수업 목록>"); 
+			System.out.println("수업번호\t수업명\t\t학점\t교수번호");
+			while(rs.next()) {
+				System.out.println(rs.getInt(1)+"\t"+rs.getString(2)+"\t"+rs.getString(3)+"\t"+rs.getString(4));
+			}
+			System.out.println();
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+			System.out.println("printClassList() error"); 
+		}
+	}
+	
+	// 교수 수업 리스트 출력
+	public void checkMyClass() {
+		try {
+			pstmt=con.prepareStatement("SELECT C.Cno, C.Cname FROM PROFESSOR P, CLASS C WHERE P.Pno=C.Pnum AND Pno=?");
+			pstmt.setInt(1, getNumber());
+			rs=pstmt.executeQuery();
+			
+			// 검색된 데이터 출력 
+			System.out.println("수업번호\t수업명");
+			
+			while(rs.next()) {
+				System.out.println(rs.getInt(1)+"\t"+rs.getString(2));
+			}
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+			
+		}
+	}
+	
+	// 수업 개설하기 
+	public void createClass() {
+		
+		/*
+Cno INTEGER PRIMARY KEY,
+Cname VARCHAR(20) NOT NULL,
+credit INTEGER,
+Cnum INTEGER,
+Pnum INTEGER,
+		 */
+		
+		int classNo;
+		String className;
+		int credit;
+		int cRoomNum;
+		
+		System.out.println("수업 번호를 입력하세요 : ");
+		classNo=scan.nextInt();
+		System.out.println("수업 이름을 입력하세요 : "); scan.nextLine();
+		className=scan.nextLine();
+		System.out.println("학점을 입력하세요 : ");
+		credit=scan.nextInt();
+		System.out.println("강의실 번호를 입력하세요 : ");
+		cRoomNum=scan.nextInt();
+		
+		try {
+			pstmt=con.prepareStatement("INSERT INTO CLASS VALUES(?,?,?,?,?)");
+			pstmt.setInt(1, classNo);
+			pstmt.setString(2, className);
+			pstmt.setInt(3, credit);
+			pstmt.setInt(4, cRoomNum);
+			pstmt.setInt(5, getNumber());
+			pstmt.executeUpdate();
+						
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	// 주어진 번호가 해당 교수가 강의하는 강의인지 확인 
+	public boolean whetherMyClass(int classNumber) {
+		
+		try {
+			pstmt=con.prepareStatement("SELECT * FROM CLASS WHERE Pnum=? AND Cno=?");
+			pstmt.setInt(1, getNumber());
+			pstmt.setInt(2, classNumber);
+			rs=pstmt.executeQuery();
+			
+			if(!rs.next()) return false;
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return true;
+	}
+	
+	// 출석부 보기 
+	public void showStudentList() {
+		
+		System.out.println("==========================================");
+		System.out.println("내 수업 목록");
+		checkMyClass();
+		System.out.println("==========================================");
+		System.out.println("출석부를 확인할 수업 번호를 입력하시오 : ");
+		
+		int classNumber = scan.nextInt();
+		
+		// 교수가 강의를 맡는 수업이 아닌 경우
+		if(whetherMyClass(classNumber)==false) {
+			System.out.println("사용자의 수업이 아닙니다.");
+		}
+		// 교수가 강의를 맡는 수업이라면 출석부를 열람할 수 있다
+		else {
+		
+			try {
+				pstmt=con.prepareStatement("SELECT C.Cno, C.Cname, S.Sname FROM CLASS C, STUDENT S, TAKE_CLASS TC WHERE TC.Cnum=C.Cno AND TC.Snum=S.Sno AND C.Cno=? ORDER BY S.Sname");
+				pstmt.setInt(1, classNumber);
+				rs=pstmt.executeQuery();
+			
+				// 검색된 데이터 출력 
+				System.out.println("수업번호\t수업명\t\t학생이름");
+			
+				while(rs.next()) {
+					System.out.println(rs.getInt(1)+"\t"+rs.getString(2)+"\t"+rs.getString(3));
+				}
+				
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+		
+		}
+	}
+	
+} // Professor 클래스 닫는 괄호
 
 public class Main {
 	
@@ -282,7 +452,7 @@ public class Main {
 			
 			if(loginWho==1) {
 				Student stu=new Student();
-				stu.loginStudent();
+				result = stu.loginStudent();
 				
 				// 메인 메뉴 리스트
 				do {
@@ -312,17 +482,51 @@ public class Main {
 					
 					// 교수 이름을 받아서 해당 교수가 강의하는 과목을 보여준다 
 					case 5:
-						stu.professorClass();
+						stu.classPerProfessor();
 						break;
 					}
 					
 				}while(choice!=0);
 				
 				stu.closeAll();
-				
 			} 
+			
 			// 교수로 로그인 했을 때 
 			else if (loginWho==2){
+				Professor pro = new Professor();
+				result = pro.loginProfessor();
+				
+				// 메인 메뉴 리스트
+				do {
+					pro.showMain();	// 메인 메뉴 리스트 출력 
+					choice=pro.getChoice(); // 어떤 메뉴를 수행할지 결정
+					
+					switch(choice) {
+					//전체 수업 목록 보기
+					case 1:	
+						pro.printClassList();
+						break;
+					
+					// 수업 리스트 출력하기  
+					case 2:
+						pro.checkMyClass();
+						break;
+						
+					// 수업 개설하기  
+					case 3:
+						pro.createClass();
+						break;
+						
+					// 출석부 확인하기 
+					case 4:
+						pro.showStudentList();
+						break;
+				
+					}
+					
+				}while(choice!=0);
+				
+				pro.closeAll();
 				
 			}
 			
